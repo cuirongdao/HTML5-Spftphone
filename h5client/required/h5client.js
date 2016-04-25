@@ -37,6 +37,8 @@
 		serverAddr: "{protocol}//{hostAndPort}/websocket",
 		// 日志服务器地址
 		logAddr: "ws://localhost:8083/websocket/log/" + Math.random(),
+		// 单会话，刷新可以重连，通话也可以登录
+		singleSession: true,
 		debug: false
 	};
 	/**
@@ -1115,6 +1117,24 @@
 	};
 	Station.prototype = {
 		constructor: Station,
+		
+//		setLocalSessionId: function(key,value){
+//			 var curtime = new Date().getTime();//获取当前时间
+//			 localStorage.setItem(key,JSON.stringify({val:value,time:curtime}));//转换成json字符串序列
+//		},
+//		getLocalSessionId: function(key,exp){//exp是设置的过期时间
+//			var val = localStorage.getItem(key);//获取存储的元素
+//			var dataobj = JSON.parse(val);//解析出json对象
+//			if(new Date().getTime() - dataobj.time > exp)//如果当前时间-减去存储的元素在创建时候设置的时间 > 过期时间
+//			{
+//				console.log("expires");//提示过期
+//			}
+//			else{
+//				console.log("val="+dataobj.val);
+//			}
+//		},
+		
+		
 		init: function() {
 			if (this.initialized) return;
 			var that = this;
@@ -1127,6 +1147,8 @@
 				agent.lastMode = agent.mode;
 				agent.mode = Agent.LOGIN;
 				agent.lastTime = agent.loginTime = Date.now();
+				
+				
 			}, 0);
 			// 坐席就绪消息
 			event.on(stationOid + ".AgentReady", function(e) {
@@ -1616,60 +1638,68 @@
 			var that = this;
 			options = options || support;
 			if (that.session.state != Session.ALIVE) return Promise.reject(new Error(Error.SESSION_NOT_ALIVE));
-			var device = null;
-			// 分机快照
-			return that.session.query.queryStationByDeviceId(deviceId).then(function(e) {
-				device = e;
-				// 坐席快照
-				return that.session.query.queryStationByAgentId(agentId);
-			}).then(function(agent) {
-				// 分机已登录
-				if (device.agentMode != "Logout" && device.agent) {
-					// 分机已登录并且登录工号不是自己
-					if (device.agent.agentId != agentId) {
-						return Promise.reject(new Error(Error.EXIST_DEVICE_LOGIN, {
-							agentId: device.agent.agentId
-						}));
-					}
-				}
-				// 坐席已登录
-				if (agent && agent.agentMode != "Logout") {
-					// 坐席已登录并且登录分机不是自己
-					if (agent.deviceId != deviceId) {
-						return Promise.reject(new Error(Error.EXIST_AGENT_LOGIN, {
-							deviceId: agent.deviceId
-						}));
-					}
-					if (that.state == Station.PENDING) {
-						// 查询坐席密码
-						return that.session.query.queryAgentByLoginName(agent.agent.loginName).then(function(e) {
-							if (e.password == password) {
-								return;
-							} else {
-								return Promise.reject(new Error(Error.INVALID_PASSWORD, {
-									type: "client"
+			
+			
+			// 如果用reconnectSession连接的，并且是登陆的，不用登陆
+			// 不是reconnectSession，即便是登陆的也要先退出再登陆
+			return Promise.resolve().then(function(){
+				if(that.session.connectType == ConnectType.CONNECT){
+					var device = null;
+					// 分机快照
+					return that.session.query.queryStationByDeviceId(deviceId).then(function(e) {
+						device = e;
+						// 坐席快照
+						return that.session.query.queryStationByAgentId(agentId);
+					}).then(function(agent) {
+						// 分机已登录
+						if (device.agentMode != "Logout" && device.agent) {
+							// 分机已登录并且登录工号不是自己
+							if (device.agent.agentId != agentId) {
+								return Promise.reject(new Error(Error.EXIST_DEVICE_LOGIN, {
+									agentId: device.agent.agentId
 								}));
 							}
-						}).then(function() {
-							return that.setState(deviceId, agentId, "", Agent.LOGOUT, null);
-						}).then(function() {
-							return that.setState(deviceId, agentId, password, Agent.LOGIN, options);
-						});
-					} else {
-						return;
-					}
+						}
+						// 坐席已登录
+						if (agent && agent.agentMode != "Logout") {
+							// 坐席已登录并且登录分机不是自己
+							if (agent.deviceId != deviceId) {
+								return Promise.reject(new Error(Error.EXIST_AGENT_LOGIN, {
+									deviceId: agent.deviceId
+								}));
+							}
+							if (that.state == Station.PENDING) {
+								// 查询坐席密码
+								return that.session.query.queryAgentByLoginName(agent.agent.loginName).then(function(e) {
+									if (e.password == password) {
+										return;
+									} else {
+										return Promise.reject(new Error(Error.INVALID_PASSWORD, {
+											type: "client"
+										}));
+									}
+								}).then(function() {
+									return that.setState(deviceId, agentId, "", Agent.LOGOUT, null);
+								}).then(function() {
+									return that.setState(deviceId, agentId, password, Agent.LOGIN, options);
+								});
+							} else {
+								return;
+							}
+						}
+						// 分机正在通话
+						if (device.calls.length) {
+							return Promise.reject(new Error(Error.RESOURCE_BUSY, {
+								type: "client"
+							}));
+						}
+						return that.setState(deviceId, agentId, password, Agent.LOGIN, options);
+					});
 				}
-				// 分机正在通话
-				if (device.calls.length) {
-					return Promise.reject(new Error(Error.RESOURCE_BUSY, {
-						type: "client"
-					}));
-				}
-				return that.setState(deviceId, agentId, password, Agent.LOGIN, options);
-			}).then(function(e) {
+			}).then(function(){
 				return that.monitor(deviceId);
 			}).then(function(e) {
-				// 绑定sessionId和坐席
+					// 绑定sessionId和坐席
 				return that.initDesktop(deviceId, agentId);
 			}).then(function(e) {
 				// 自动工作模式
@@ -1683,7 +1713,7 @@
 				});
 			}).then(function(e) {
 				// 同步状态
-				return that.sync(deviceId);
+				return that.sync(deviceId);  
 			}).then(function() {
 				that.agent.agentId = agentId;
 				that.agent.password = password;
@@ -2283,6 +2313,10 @@
 		queryQueue: function(groupNo) {}
 	};
 	var Cache = {};
+	var ConnectType = {
+		CONNECT: 1,
+		RECONNECT: 2
+	};
 	var Session = function() {
 			this.guid = ++GUID;
 			this.state = 0;
@@ -2300,6 +2334,7 @@
 			this.heartbeatTimer = 0;
 			this.initialized = false;
 			this.reasons = [];
+			this.connectType = ConnectType.CONNECT;
 		};
 	Session.DEAD = 0;
 	Session.ALIVE = 1;
@@ -2412,6 +2447,9 @@
 		},
 		start: function(dcmp, connector, options) {
 			logger.log("session - start");
+			
+			var LocalSessionID;
+			
 			var that = this;
 			// 获得连接参数，初始连接时取此函数的参数，重连的时候取保存的参数
 			var args = that.serverArgs = (arguments.length && arguments) || that.serverArgs || arr;
@@ -2439,11 +2477,49 @@
 			}).then(function(e) {
 				return that.socket.open(e, options);
 			}).then(function(e) {
-				return that.socket.send({
-					method: "initSession",
-					object: "cti",
-					params: ["", navigator.userAgent + ";" + new Date().toUTCString(), "", "Async"]
-				});
+
+				// 只允许一次session是才能这样做
+				// 第一次连接时   reconnectAttempts = 0
+				// 连接时检测sessionId，
+				// 1、sessionId存在且没过期，直接调用reconnectSession->如果失败调用正常逻辑
+				// 2、正常连接initSession
+				
+				var val = localStorage.getItem(LocalSessionID);//获取存储的元素
+				var dataobj = JSON.parse(val);//解析出json对象
+				if (that.reconnectAttempts == 0 && settings.singleSession){
+					
+					if( Date.now() - dataobj.time > settings.reconnectInterval )//如果当前时间-减去存储的元素在创建时候设置的时间 > 过期时间
+					{
+						console.log("sessionId " + dataobj.val + " is expires");//提示过期
+						return that.initSession();
+					} else{
+						console.log("sessionId = " + dataobj.val);
+						return that.reconnectSession(dataobj.val)
+						["catch"](function() {
+							return that.initSession();
+						});
+					}
+				}
+				// 重连时   
+				
+				// 第一次重连的时候(reconnectAttempts = 1)，取session里保存的sessionId,先调用reconnectSession
+				// 失败就调用start  
+				// 不是第一次，直接调用start
+				// 每一分钟更新一次session， 更新到本地
+				else if (that.reconnectAttempts == 1 && settings.singleSession){
+					return that.reconnectSession(dataobj.val)
+					["catch"](function() {
+						return that.initSession();
+					});
+				}else{
+					return that.initSession();
+				}
+				
+				// 如果用reconnectSession连接的，并且是登陆的，不用登陆
+				// 不是reconnectSession，即便是登陆的也要先退出再登陆
+				
+				// 加上每分钟更新sessionId和时间
+				
 			}).then(function(e) {
 				that.sessionId = e.sessionId;
 				that.init();
@@ -2460,8 +2536,10 @@
 			});
 		},
 		ping: function() {
-			// logger.log('session - ping');
 			var that = this;
+			var localSessionID;
+			that.setLocalSessionId(localSessionID,that.sessionId);
+			
 			that.heartbeatTimer = window.setTimeout(function() {
 				if (that.state == Session.ALIVE) {
 					logger.log("session - ping");
@@ -2477,6 +2555,36 @@
 					that.ping();
 				}
 			}, that.heartbeatInterval || settings.heartbeatInterval);
+		},
+		// 本地存储sessionID
+		setLocalSessionId: function(key,value){
+			logger.log("update local session " + value);
+			var curtime = new Date().getTime();//获取当前时间
+			localStorage.setItem(key,JSON.stringify({val:value,time:curtime}));
+		},
+		initSession: function(){
+			logger.log('initSession - end');
+			var that = this;
+			return that.socket.send({
+				method: "initSession",
+				object: "cti",
+				params: ["", navigator.userAgent + ";" + new Date().toUTCString(), "", "Async"]
+			}).then(function(e){
+				that.connectType = ConnectType.CONNECT;
+				return e;
+			});
+		},
+		reconnectSession: function(sessionId){
+			logger.log('reconnectSession - ' + sessionId);
+			var that = this;
+			return that.socket.send({
+				method: "reconnectSession",
+				object: "cti",
+				params: [sessionId,""]
+			}).then(function(e){
+				that.connectType = ConnectType.RECONNECT;
+				return e;
+			});
 		},
 		end: function() {
 			logger.log("session - end");

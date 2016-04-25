@@ -24,6 +24,7 @@ $(document).ready(function() {
 	// 修改全局配置
 	H5Client.settings.timeout = timeout;
 	H5Client.settings.heartbeatInterval = heartbeatInterval;
+	H5Client.settings.reconnectInterval = reconnectInterval;
 	H5Client.settings.loginMode = loginMode;
 	H5Client.settings.autoWorkMode = autoWorkMode;
 	H5Client.settings.debug = debug;
@@ -52,7 +53,7 @@ $(document).ready(function() {
 	// 退出或刷新时关闭session
 	window.onbeforeunload = function() {
 		if (Session.ALIVE == session.state) {
-			session.end();
+//			session.end();
 		}
 	}
 
@@ -90,6 +91,7 @@ $(document).ready(function() {
 	})();
 
 	function checkState() {
+//		logger.log("checkState");
 		if (session.state == Session.DEAD || station.state == Station.PENDING) return;
 
 		var stationInfo = (station.deviceId && ('<p>分机：' + station.deviceId + '</p>')) || '';
