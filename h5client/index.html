@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>HTML5软电话</title>
+
+<script type="text/javascript">
+</script>
+<link rel="stylesheet" type="text/css" href="lib/jquery-easyui/themes/metro/easyui.css">
+<link rel="stylesheet" type="text/css" href="lib/jquery-easyui/themes/icon.css">
+
+<script type="text/javascript" src="lib/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="lib/jquery-easyui/jquery.easyui.min.js"></script>
+<script type="text/javascript" src="lib/jquery-easyui/locale/easyui-lang-zh_CN.js"></script>
+
+<script type="text/javascript" src="lib/ccwidget/ccwidget.js"></script>
+
+<!-- H5Client所需文件 -->
+<script type="text/javascript" src="required/promise.js"></script>
+<script type="text/javascript" src="required/h5client.js"></script>
+
+<!-- H5Client测试文件 -->
+<script type="text/javascript" src="cfg/test-h5client.cfg.js"></script>
+<script type="text/javascript" src="test/test-h5client.js"></script>
+
+<script type="text/javascript">
+	function init(){
+		$(window).resize(function(){
+// 			$.parser.parse();
+			$('#dd').dialog('center');
+		});
+		$('#dd').dialog({
+			onOpen:function(){  
+				$(document).keypress(function(e) { 
+				 // 回车键事件 
+				    if(e.which == 13) {
+						$("#login").click(); 
+				    } 
+				});
+		    }  
+		}); 
+	}
+</script>
+</head>
+<body>
+    <div id="dlg-buttons">
+	    <a href="javascript:void(0);" class="easyui-linkbutton" id="login"
+	    	data-options="iconCls:'icon-ok'"
+	    	onclick="javascript:$('#dd').dialog('close');">登录</a>
+	    <a href="javascript:void(0);" class="easyui-linkbutton"
+	    	data-options="iconCls:'icon-cancel'"
+	    	onclick="javascript:$('#dd').dialog('close');">取消</a>
+    </div>
+	<div id="dd" class="easyui-dialog" title="登录" style="padding:8px;width:280px;height:248px;"   
+	        data-options="iconCls:'icon-user-mature',resizable:true,modal:true,closed:false,buttons:'#dlg-buttons'">
+		<div style="margin-bottom:20px">
+<!-- 		    <label for="deviceId">分机</label> -->
+		    <input type="text" class="easyui-textbox" id="deviceId" value="6832" data-options="type:'text',iconCls:'icon-telephone',iconAlign:'left',validType:'length[1,16]',prompt:'分机号码'" style="width:100%;height:32px;">
+	   	</div>
+		<div style="margin-bottom:20px">
+<!-- 		    <label for="agentId">工号</label> -->
+		    <input type="text" class="easyui-textbox" id="agentId" value="36001" data-options="type:'text',iconCls:'icon-man',iconAlign:'left',validType:'length[1,16]',prompt:'工号'" style="width:100%;height:32px;">
+		</div>
+		<div style="margin-bottom:20px">
+<!-- 		    <label for="password">密码</label> -->
+		    <input type="password" class="easyui-textbox" id="password" value="000000" data-options="type:'password',iconCls:'icon-lock',iconAlign:'left',validType:'length[1,16]',prompt:'密码'" style="width:100%;height:32px;">
+		</div>
+	</div>
+	<div style="overflow: hidden;">
+		<div id="win" class="easyui-panel" title="softphone" 
+			style="
+				width:1024px;
+				height:72px;
+				border-radius:0px 0px 2px 2px;/* box-shadow: 0 1px 2px 0 rgba(0,0,0,0.26); */
+				overflow: auto;
+				margin: auto;
+				position: absolute;
+				top: 0; left: 0; right: 0;
+			" 
+	        data-options="
+	        	noheader:true,
+	        	collapsible:true,
+	        	iconCls:'icon-telephone',
+	        	modal:true,
+	        	width:'100%'
+	        	">
+	<!-- 		<a href="javascript:void(0)" id="mb" class="easyui-linkbutton"  -->
+	<!-- 	        data-options="iconCls:'icon-edit',duration:0,iconAlign:'top'">登录</a>  -->
+		    <div style="float: left;padding: 0px 8px;">
+			<label for="mb">
+			状态时长：<span id="duration">--:--</span>
+			排队数：<span id="callsInQueue">--</span>
+			通话数：<span id="callCount">-</span>
+		    </label><br>
+			<a href="javascript:void(0)" class="easyui-menubutton" style="width:100px;text-align: left;"
+		        data-options="menu:'#mm',iconCls:'icon-agent',duration:0,size:'large'"><span id="state">未登录</span></a>   
+		    <input type="text" class="easyui-textbox" id="number" value="6834" data-options="type:'text',iconCls:'icon-telephone',iconAlign:'left',validType:'length[1,16]',prompt:'拨号'" style="width:100px;height:32px;">
+			</div>
+			<div id="mm" style="width:150px;">   
+			    <div onclick="javascript:$('#dd').dialog('open');"
+					data-options="iconCls:'icon-user-mature'">
+			    	<span>登录</span>
+<!-- 					<div> -->
+<!-- 				    	<div>就绪</div>    -->
+<!-- 				    	<div>离席</div>    -->
+<!-- 			    	</div> -->
+			    </div>   
+			    <div class="menu-sep"></div>   
+			    <div id="ready" data-options="iconCls:'icon-ready'">就绪</div>
+			    <div id="notReady" data-options="iconCls:'icon-cup'">
+			    	<span>离席</span>
+<!-- 			    	<div class="menu-content"> -->
+<!-- 			    		<div id="reasonContent" style="padding: 2px 16px;"> -->
+<!-- 				    		<label for="reason">原因码</label> -->
+<!-- 				    		<input type="text" class="easyui-textbox" maxlength="2" id="reason" value="1" data-options="type:'text',validType:'length[1,2]',prompt:'原因码'" style="width: 24px;"> -->
+<!-- 						</div> -->
+<!-- 					</div> -->
+			    </div>   
+			    <div id="workNotReady">后处理</div>   
+			    <div class="menu-sep"></div>   
+			    <div id="logout" data-options="iconCls:'icon-door-out'">退出</div>
+			    <div class="menu-sep"></div>
+			    <div>
+			    	<span>信息</span>
+					<div class="menu-content" style="padding:8px 24px;">
+						<p id="stationInfo" style="white-space: nowrap;min-width: 96px;"></p>
+					</div>
+			    </div>   
+			</div>
+			<button id="dial" class="easyui-linkbutton" style="width:64px;"
+		        data-options="iconCls:'icon-dial',duration:0,iconAlign:'top',size:'large'">外呼</button> 
+			<a href="javascript:void(0);" id="drop" class="easyui-linkbutton" style="width:64px;"
+		        data-options="iconCls:'icon-drop',duration:0,iconAlign:'top',size:'large'">挂断</a> 
+			<a href="javascript:void(0);" id="answer" class="easyui-linkbutton" style="width:64px;"
+		        data-options="iconCls:'icon-answer',duration:0,iconAlign:'top',size:'large'">接听</a> 
+			<a href="javascript:void(0);" id="hold" class="easyui-linkbutton" style="width:64px;"
+		        data-options="iconCls:'icon-hold',duration:0,iconAlign:'top',size:'large'">保持</a> 
+			<a href="javascript:void(0);" id="retrieve" class="easyui-linkbutton" style="width:64px;"
+		        data-options="iconCls:'icon-retrieve',duration:0,iconAlign:'top',size:'large'">取回</a> 
+			<a href="javascript:void(0);" id="conference" class="easyui-linkbutton" style="width:64px;"
+		        data-options="iconCls:'icon-conference',duration:0,iconAlign:'top',size:'large'">会议</a> 
+			<a href="javascript:void(0);" id="completeConference" class="easyui-linkbutton" style="width:64px;"
+		        data-options="iconCls:'icon-conference',duration:0,iconAlign:'top',size:'large'">完成</a> 
+			<a href="javascript:void(0);" id="transfer" class="easyui-linkbutton" style="width:64px;"
+		        data-options="iconCls:'icon-transfer',duration:0,iconAlign:'top',size:'large'">转移</a> 
+			<a href="javascript:void(0);" id="completeTransfer" class="easyui-linkbutton" style="width:64px;"
+		        data-options="iconCls:'icon-transfer',duration:0,iconAlign:'top',size:'large'">完成</a> 
+			<a href="javascript:void(0);" id="singleStepTransfer" class="easyui-linkbutton" style="width:64px;"
+		        data-options="iconCls:'icon-transfer',duration:0,iconAlign:'top',size:'large'">单转</a> 
+			<a href="javascript:void(0);" id="consultation" class="easyui-linkbutton" style="width:64px;"
+		        data-options="iconCls:'icon-consultation',duration:0,iconAlign:'top',size:'large'">咨询</a> 
+			<a href="javascript:void(0);" id="satisfaction" class="easyui-linkbutton" style="width:64px;"
+		        data-options="iconCls:'icon-satisfaction',duration:0,iconAlign:'top',size:'large'">满意度</a> 
+			<a href="javascript:void(0);" id="sync" class="easyui-linkbutton" style="width:64px;"
+		        data-options="menu:'#mm',iconCls:'icon-sync',duration:0,iconAlign:'top',size:'large'" title="分机正在通话，无法登录时使用">同步话机</a> 
+		</div>
+	</div>
+</body>
+
+</html>

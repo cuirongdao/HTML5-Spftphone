@@ -1,0 +1,21 @@
+目录说明：
+h5client
+├── cfg/                      示例配置文件
+│   └── test-h5client.cfg.js
+├── docs/                     开发文档
+├── lib/                      示例页面引用的库
+├── required/                 调用SDK所必须的文件
+│   ├── h5client.js
+│   └── promise.js
+├── test/                     示例用的JS文件
+│   └── test-h5client.js
+└── index.html                示例页面
+
+
+使用说明：
+修改cfg目录下的文件，配置使用环境
+运行index.html查看效果
+
+开发说明：
+页面引入required目录下的promise.js和h5client.js，并且promise.js需在h5client.js前面，
+参照test下文件调用SDK
