@@ -9,7 +9,7 @@
 		strundefined = typeof undefined,
 		noop = function() {},
 		GUID = 0,
-		version = "2.2.3";
+		version = "2.2.4";
 	// 全局设置
 	var settings = {
 		// 超时时间
@@ -2459,7 +2459,7 @@
 			return Promise.resolve().then(function() {
 				// 连接DCMP
 				if (typeof args[0] == 'string' && typeof args[1] == 'string') {
-					var dcmpAddr = that.parseDcmpAddr(dcmp, connector);
+					var dcmpAddr = that.parseDcmpAddr(args[0], args[1]);  
 					return that.getServerAddr(dcmpAddr, options);
 				// 连接IP地址
 				} else if (Array.isArray(args[0]) && args[0].length > 0) {
@@ -2483,36 +2483,39 @@
 				// 连接时检测sessionId，
 				// 1、sessionId存在且没过期，直接调用reconnectSession->如果失败调用正常逻辑
 				// 2、正常连接initSession
-				
-				var val = localStorage.getItem(LocalSessionID);//获取存储的元素
-				var dataobj = JSON.parse(val);//解析出json对象
-				if (that.reconnectAttempts == 0 && settings.singleSession){
+				if (localStorage.getItem(LocalSessionID)){
+					var val = localStorage.getItem(LocalSessionID);//获取存储的元素
+					var dataobj = JSON.parse(val);//解析出json对象
+					if (that.reconnectAttempts == 0 && settings.singleSession){
 					
-					if( Date.now() - dataobj.time > settings.reconnectInterval )//如果当前时间-减去存储的元素在创建时候设置的时间 > 过期时间
-					{
-						console.log("sessionId " + dataobj.val + " is expires");//提示过期
-						return that.initSession();
-					} else{
-						console.log("sessionId = " + dataobj.val);
-						return that.reconnectSession(dataobj.val)
-						["catch"](function() {
+						if( Date.now() - dataobj.time > settings.heartbeatInterval )//如果当前时间-减去存储的元素在创建时候设置的时间 > 过期时间
+						{
+							console.log("sessionId " + dataobj.val + " is expires");//提示过期
 							return that.initSession();
-						});
+						} else{
+							console.log("sessionId = " + dataobj.val);
+							return that.reconnectSession(dataobj.val)
+							["catch"](function() {
+								return that.initSession();
+							});
+						}
 					}
-				}
 				// 重连时   
 				
 				// 第一次重连的时候(reconnectAttempts = 1)，取session里保存的sessionId,先调用reconnectSession
 				// 失败就调用start  
 				// 不是第一次，直接调用start
 				// 每一分钟更新一次session， 更新到本地
-				else if (that.reconnectAttempts == 1 && settings.singleSession){
-					return that.reconnectSession(dataobj.val)
-					["catch"](function() {
+					else if (that.reconnectAttempts == 1 && settings.singleSession){
+						return that.reconnectSession(dataobj.val)
+						["catch"](function() {
+							return that.initSession();
+						});
+					}else{
 						return that.initSession();
-					});
-				}else{
-					return that.initSession();
+					}
+				}else {
+						return that.initSession();
 				}
 				
 				// 如果用reconnectSession连接的，并且是登陆的，不用登陆

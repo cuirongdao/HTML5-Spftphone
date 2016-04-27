@@ -41,5 +41,3 @@ var callsWaiting = true;
 var timeout = 6000;
 // 心跳间隔
 var heartbeatInterval = 60000;
-// 重连间隔
-var reconnectInterval = 65000;

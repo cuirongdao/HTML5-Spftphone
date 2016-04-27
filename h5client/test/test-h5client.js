@@ -24,7 +24,6 @@ $(document).ready(function() {
 	// 修改全局配置
 	H5Client.settings.timeout = timeout;
 	H5Client.settings.heartbeatInterval = heartbeatInterval;
-	H5Client.settings.reconnectInterval = reconnectInterval;
 	H5Client.settings.loginMode = loginMode;
 	H5Client.settings.autoWorkMode = autoWorkMode;
 	H5Client.settings.debug = debug;
