@@ -1756,6 +1756,7 @@
 		 * @param agentId
 		 */
 		signOut: function(options) {
+			var LocalSessionID;
 			var that = this;
 			options = options || support;
 			var deviceId = options.deviceId || that.deviceId;
@@ -1790,7 +1791,9 @@
 								origFn.apply(fn, arguments);
 							}
 						};
-
+						//退出时，清除存在本地的sessionID
+						localStorage.removeItem(LocalSessionID);
+						
 						that.session.event.on("AgentStateChange", fn, 2);
 					});
 				}, function(e) {
@@ -2483,7 +2486,7 @@
 				// 连接时检测sessionId，
 				// 1、sessionId存在且没过期，直接调用reconnectSession->如果失败调用正常逻辑
 				// 2、正常连接initSession
-				if (localStorage.getItem(LocalSessionID)){
+				if (localStorage.getItem(LocalSessionID)){//判断本地是否存有sessionId
 					var val = localStorage.getItem(LocalSessionID);//获取存储的元素
 					var dataobj = JSON.parse(val);//解析出json对象
 					if (that.reconnectAttempts == 0 && settings.singleSession){
