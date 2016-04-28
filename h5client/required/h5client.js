@@ -1643,7 +1643,7 @@
 			// 如果用reconnectSession连接的，并且是登陆的，不用登陆
 			// 不是reconnectSession，即便是登陆的也要先退出再登陆
 			return Promise.resolve().then(function(){
-				if(that.session.connectType == ConnectType.CONNECT){
+				
 					var device = null;
 					// 分机快照
 					return that.session.query.queryStationByDeviceId(deviceId).then(function(e) {
@@ -1679,9 +1679,14 @@
 										}));
 									}
 								}).then(function() {
-									return that.setState(deviceId, agentId, "", Agent.LOGOUT, null);
-								}).then(function() {
-									return that.setState(deviceId, agentId, password, Agent.LOGIN, options);
+									if(that.session.connectType == ConnectType.CONNECT){
+										return that.setState(deviceId, agentId, "", Agent.LOGOUT, null).then(function(e) {
+									
+											return that.setState(deviceId, agentId, password, Agent.LOGIN, options);
+										});
+									} else {
+										return;
+									}
 								});
 							} else {
 								return;
@@ -1694,8 +1699,9 @@
 							}));
 						}
 						return that.setState(deviceId, agentId, password, Agent.LOGIN, options);
+
 					});
-				}
+				
 			}).then(function(){
 				return that.monitor(deviceId);
 			}).then(function(e) {
@@ -1756,7 +1762,6 @@
 		 * @param agentId
 		 */
 		signOut: function(options) {
-			var LocalSessionID;
 			var that = this;
 			options = options || support;
 			var deviceId = options.deviceId || that.deviceId;
@@ -1791,8 +1796,6 @@
 								origFn.apply(fn, arguments);
 							}
 						};
-						//退出时，清除存在本地的sessionID
-						localStorage.removeItem(LocalSessionID);
 						
 						that.session.event.on("AgentStateChange", fn, 2);
 					});
@@ -2594,6 +2597,7 @@
 		},
 		end: function() {
 			logger.log("session - end");
+			var LocalSessionID;
 			var that = this;
 			that.socket.forcedClose = true;
 			if (that.state != Session.ALIVE) {
@@ -2605,6 +2609,9 @@
 					station.stopMonitor();
 				}
 			}
+			//退出时，清除存在本地的sessionID
+			localStorage.removeItem(LocalSessionID);
+			
 			that.state = Session.DEAD;
 			// that.state = Session.CLOSING;
 			return that.socket.send({
