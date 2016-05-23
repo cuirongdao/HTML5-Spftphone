@@ -9,7 +9,7 @@
 		strundefined = typeof undefined,
 		noop = function() {},
 		GUID = 0,
-		version = "2.2.4";
+		version = "2.2.5";
 	// 全局设置
 	var settings = {
 		// 超时时间
@@ -256,8 +256,8 @@
 		 * 监听事件
 		 *
 		 * @param strtypes
-		 *            事件类型，支持多事件（”,“隔开），命名空间（”.“隔开，用于移除事件），如：'open.Session,
-		 *            close.Session'
+		 *            事件类型，支持多事件（”,“隔开），命名空间（”.“隔开，用于移除事件），如：'session.Open,
+		 *            session.Close'
 		 * @param fn
 		 *            处理函数
 		 * @param level
@@ -1118,23 +1118,6 @@
 	Station.prototype = {
 		constructor: Station,
 		
-//		setLocalSessionId: function(key,value){
-//			 var curtime = new Date().getTime();//获取当前时间
-//			 localStorage.setItem(key,JSON.stringify({val:value,time:curtime}));//转换成json字符串序列
-//		},
-//		getLocalSessionId: function(key,exp){//exp是设置的过期时间
-//			var val = localStorage.getItem(key);//获取存储的元素
-//			var dataobj = JSON.parse(val);//解析出json对象
-//			if(new Date().getTime() - dataobj.time > exp)//如果当前时间-减去存储的元素在创建时候设置的时间 > 过期时间
-//			{
-//				console.log("expires");//提示过期
-//			}
-//			else{
-//				console.log("val="+dataobj.val);
-//			}
-//		},
-		
-		
 		init: function() {
 			if (this.initialized) return;
 			var that = this;
@@ -1147,8 +1130,6 @@
 				agent.lastMode = agent.mode;
 				agent.mode = Agent.LOGIN;
 				agent.lastTime = agent.loginTime = Date.now();
-				
-				
 			}, 0);
 			// 坐席就绪消息
 			event.on(stationOid + ".AgentReady", function(e) {
@@ -1259,7 +1240,7 @@
 				if (e.srcDeviceId != that.deviceId || e.srcDeviceId != e.answeringDevice && e.answeringDevice && e.answeringDevice != e.callingDevice && e.answeringDevice != e.calledDevice) return;
 				var lastStateCall = that.calls.get(e.callId);
 				// 之前存在，并且不是保持的
-				if (lastStateCall && !lastStateCall.isHeld) {
+				if (!lastStateCall || !lastStateCall.isHeld) {
 					that.calls.activeCall = e.callId;
 				}
 				that.calls.add({
@@ -1516,6 +1497,7 @@
 					that.agent.reason = arr;
 					that.agent.queues = arr;
 				}
+				that.calls.clear();
 				for (var i = 0; i < device.calls.length; i++) {
 					var state, isHeld, ani, dnis, contactId;
 					switch (device.calls[i].state) {
@@ -1643,64 +1625,62 @@
 			// 如果用reconnectSession连接的，并且是登陆的，不用登陆
 			// 不是reconnectSession，即便是登陆的也要先退出再登陆
 			return Promise.resolve().then(function(){
-				
-					var device = null;
-					// 分机快照
-					return that.session.query.queryStationByDeviceId(deviceId).then(function(e) {
-						device = e;
-						// 坐席快照
-						return that.session.query.queryStationByAgentId(agentId);
-					}).then(function(agent) {
-						// 分机已登录
-						if (device.agentMode != "Logout" && device.agent) {
-							// 分机已登录并且登录工号不是自己
-							if (device.agent.agentId != agentId) {
-								return Promise.reject(new Error(Error.EXIST_DEVICE_LOGIN, {
-									agentId: device.agent.agentId
-								}));
-							}
-						}
-						// 坐席已登录
-						if (agent && agent.agentMode != "Logout") {
-							// 坐席已登录并且登录分机不是自己
-							if (agent.deviceId != deviceId) {
-								return Promise.reject(new Error(Error.EXIST_AGENT_LOGIN, {
-									deviceId: agent.deviceId
-								}));
-							}
-							if (that.state == Station.PENDING) {
-								// 查询坐席密码
-								return that.session.query.queryAgentByLoginName(agent.agent.loginName).then(function(e) {
-									if (e.password == password) {
-										return;
-									} else {
-										return Promise.reject(new Error(Error.INVALID_PASSWORD, {
-											type: "client"
-										}));
-									}
-								}).then(function() {
-									if(that.session.connectType == ConnectType.CONNECT){
-										return that.setState(deviceId, agentId, "", Agent.LOGOUT, null).then(function(e) {
-									
-											return that.setState(deviceId, agentId, password, Agent.LOGIN, options);
-										});
-									} else {
-										return;
-									}
-								});
-							} else {
-								return;
-							}
-						}
-						// 分机正在通话
-						if (device.calls.length) {
-							return Promise.reject(new Error(Error.RESOURCE_BUSY, {
-								type: "client"
+				var device = null;
+				// 分机快照
+				return that.session.query.queryStationByDeviceId(deviceId).then(function(e) {
+					device = e;
+					// 坐席快照
+					return that.session.query.queryStationByAgentId(agentId);
+				}).then(function(agent) {
+					// 分机已登录
+					if (device.agentMode != "Logout" && device.agent) {
+						// 分机已登录并且登录工号不是自己
+						if (device.agent.agentId != agentId) {
+							return Promise.reject(new Error(Error.EXIST_DEVICE_LOGIN, {
+								agentId: device.agent.agentId
 							}));
 						}
-						return that.setState(deviceId, agentId, password, Agent.LOGIN, options);
-
-					});
+					}
+					// 坐席已登录
+					if (agent && agent.agentMode != "Logout") {
+						// 坐席已登录并且登录分机不是自己
+						if (agent.deviceId != deviceId) {
+							return Promise.reject(new Error(Error.EXIST_AGENT_LOGIN, {
+								deviceId: agent.deviceId
+							}));
+						}
+						if (that.state == Station.PENDING) {
+							// 查询坐席密码
+							return that.session.query.queryAgentByLoginName(agent.agent.loginName).then(function(e) {
+								if (e.password == password) {
+									return;
+								} else {
+									return Promise.reject(new Error(Error.INVALID_PASSWORD, {
+										type: "client"
+									}));
+								}
+							}).then(function() {
+								if(that.session.connectType == ConnectType.CONNECT){
+									return that.setState(deviceId, agentId, "", Agent.LOGOUT, null).then(function(e) {
+								
+										return that.setState(deviceId, agentId, password, Agent.LOGIN, options);
+									});
+								} else {
+									return;
+								}
+							});
+						} else {
+							return;
+						}
+					}
+					// 分机正在通话
+					if (device.calls.length) {
+						return Promise.reject(new Error(Error.RESOURCE_BUSY, {
+							type: "client"
+						}));
+					}
+					return that.setState(deviceId, agentId, password, Agent.LOGIN, options);
+				});
 				
 			}).then(function(){
 				return that.monitor(deviceId);
@@ -2042,7 +2022,7 @@
 			logger.log("station - retrieve");
 			var that = this;
 			// 有激活的电话重连
-			// 又保持的电话恢复
+			// 有保持的电话恢复
 			if (that.session.state != Session.ALIVE) return Promise.reject(new Error(Error.SESSION_NOT_ALIVE));
 			if (that.state != Station.MONITORED) return Promise.reject(new Error(Error.STATION_NOT_MONITORED));
 			// 无保持的则返回
@@ -2204,6 +2184,26 @@
 			options = options || {};
 			var type = options.type || "Active"; //Silent
 			if (that.session.state != Session.ALIVE) return Promise.reject(new Error(Error.SESSION_NOT_ALIVE));
+			
+			// 反向加入
+			if(options.reverse){
+				var tmpStation = new Station(that.session);
+				return tmpStation.sync(dest).then(function(e){
+					var activeCall = tmpStation.calls.get(tmpStation.calls.activeCall)
+					if(!activeCall) return Promise.reject(new Error(Error.INVALID_STATE_ERR));
+					return that.session.socket.send({
+						method: "singleStepConferenceCall",
+						object: "cti",
+						params: [{
+							activeCall: activeCall.callId,
+							deviceId: dest,
+							deviceToJoin: that.deviceId,
+							participationType: type
+						}]
+					});
+				});
+			}
+			
 			if (that.state != Station.MONITORED) return Promise.reject(new Error(Error.STATION_NOT_MONITORED));
 			// 没有激活的电话或者激活的电话不是通话状态则返回
 			var activeCall = that.calls.get(that.calls.activeCall);

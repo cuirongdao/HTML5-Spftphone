@@ -164,6 +164,7 @@ $(document).ready(function() {
 	event.on('user.Delivered', function(e) {
 		if (e.srcDeviceId != station.deviceId) return;
 		var call = station.calls.get(e.callId);
+		widget.alert("来电弹屏："+ call.callId + " " + call.contactId + " " + call.createTime);
 		if (!call) return;
 		// 来电
 		if ("In" == call.direction) {
@@ -216,6 +217,7 @@ $(document).ready(function() {
 	event.on('user.Established', function(e) {
 		if (!e || !e.srcDeviceId || e.srcDeviceId != station.deviceId) return;
 		// 判断号码
+		console.log(e);
 		if (playAgentNo && e.answeringDevice && e.srcDeviceId == station.deviceId && e.answeringDevice == station.deviceId && e.callingDevice && e.split) {
 			// 外线->调用consultation接口，参数填IVR号码
 			station.consultation(ivrNo, {

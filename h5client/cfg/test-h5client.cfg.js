@@ -4,7 +4,6 @@
 // 日志服务器地址（可选）
 var logAddr = 'ws://localhost:8090/logserver/websocket/log/' + Math.random(); // 172.16.0.154
 
-
 // 服务器连接方式（二选一，优先选择方式一）
 var connectType = 1;
 
