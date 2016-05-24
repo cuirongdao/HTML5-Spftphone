@@ -27,6 +27,7 @@ $(document).ready(function() {
 	H5Client.settings.loginMode = loginMode;
 	H5Client.settings.autoWorkMode = autoWorkMode;
 	H5Client.settings.debug = debug;
+	H5Client.settings.realtimeStat = realtimeStat;
 
 	H5Client.settings.logAddr = logAddr;
 	H5Client.logger.open();
@@ -46,6 +47,7 @@ $(document).ready(function() {
 
 	var Agent = H5Client.Agent;
 	var Call = H5Client.Call;
+	var Query = new H5Client.Query(session);
 
 	checkButton();
 
@@ -598,6 +600,12 @@ $(document).ready(function() {
 			checkButton();
 			widget.error(e.message);
 		});
+	});
+	
+	// 查询技能组
+	$('#AllQueues').on('click', function() {
+		
+		Query.queryAllQueues();
 	});
 
 });

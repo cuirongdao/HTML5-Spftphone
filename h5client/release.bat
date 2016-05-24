@@ -1,6 +1,6 @@
 @echo on
 cd /d %~dp0
-set version=2.2.5
+set version=2.2.6
 set dirname=%~dp0\h5client-%version%(%date:~0,4%.%date:~5,2%.%date:~8,2%)
 
 

@@ -40,3 +40,5 @@ var callsWaiting = true;
 var timeout = 6000;
 // 心跳间隔
 var heartbeatInterval = 60000;
+// 实时统计服务名称
+var realtimeStat = "RTStat";

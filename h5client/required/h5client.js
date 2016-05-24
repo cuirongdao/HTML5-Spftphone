@@ -9,7 +9,7 @@
 		strundefined = typeof undefined,
 		noop = function() {},
 		GUID = 0,
-		version = "2.2.5";
+		version = "2.2.6";
 	// 全局设置
 	var settings = {
 		// 超时时间
@@ -37,8 +37,10 @@
 		serverAddr: "{protocol}//{hostAndPort}/websocket",
 		// 日志服务器地址
 		logAddr: "ws://localhost:8083/websocket/log/" + Math.random(),
-		// 单会话，刷新可以重连，通话也可以登录
-		singleSession: true,
+		// 非多会话，刷新可以重连，通话也可以登录
+		multipleSession: false,
+		// 实时统计服务名称（查询技能组用到）
+		realtimeStat: 'RTStat',
 		debug: false
 	};
 	/**
@@ -2316,6 +2318,17 @@
 				params: [loginName]
 			});
 		},
+		queryAllQueues: function(option) {
+			logger.log("queryAllQueues!");
+			var that = this;
+			//{"method":"queryResources","object":"res","params":["Queue","RTStat"]}
+			option = option || support;
+			return that.session.socket.send({
+				method: "queryResources",
+				object: "res",
+				params: ["Queue",option.realtimeStat || settings.realtimeStat]
+			});
+		},
 		queryQueue: function(groupNo) {}
 	};
 	var Cache = {};
@@ -2492,7 +2505,7 @@
 				if (localStorage.getItem(LocalSessionID)){//判断本地是否存有sessionId
 					var val = localStorage.getItem(LocalSessionID);//获取存储的元素
 					var dataobj = JSON.parse(val);//解析出json对象
-					if (that.reconnectAttempts == 0 && settings.singleSession){
+					if (that.reconnectAttempts == 0 && !settings.multipleSession){
 					
 						if( Date.now() - dataobj.time > settings.heartbeatInterval )//如果当前时间-减去存储的元素在创建时候设置的时间 > 过期时间
 						{
@@ -2512,7 +2525,7 @@
 				// 失败就调用start  
 				// 不是第一次，直接调用start
 				// 每一分钟更新一次session， 更新到本地
-					else if (that.reconnectAttempts == 1 && settings.singleSession){
+					else if (that.reconnectAttempts == 1 && !settings.multipleSession){
 						return that.reconnectSession(dataobj.val)
 						["catch"](function() {
 							return that.initSession();
